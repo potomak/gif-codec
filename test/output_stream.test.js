@@ -1,0 +1,115 @@
+import OutputStream from "../src/output_stream"
+
+describe("pack", () => {
+  test("computes the output stream correctly", () => {
+    let outputStream = new OutputStream()
+    const codeLength = 8
+    outputStream.pack(codeLength, 1)
+    expect(outputStream.offset).toEqual(1)
+    expect(outputStream.bitOffset).toEqual(0)
+    expect(outputStream.output).toEqual([1])
+    outputStream.pack(codeLength, 2)
+    expect(outputStream.offset).toEqual(2)
+    expect(outputStream.bitOffset).toEqual(0)
+    expect(outputStream.output).toEqual([1, 2])
+    outputStream.pack(codeLength, 3)
+    expect(outputStream.offset).toEqual(3)
+    expect(outputStream.bitOffset).toEqual(0)
+    expect(outputStream.output).toEqual([1, 2, 3])
+  })
+
+  test("computes the output stream correctly (code length > 8)", () => {
+    let outputStream = new OutputStream()
+    const codeLength = 9
+    outputStream.pack(codeLength, 256)
+    expect(outputStream.offset).toEqual(1)
+    expect(outputStream.bitOffset).toEqual(1)
+    expect(outputStream.output).toEqual([0, 1])
+  })
+
+  test("computes the output stream correctly (code length < 8)", () => {
+    let outputStream = new OutputStream()
+    const codeLength = 4
+    outputStream.pack(codeLength, 15)
+    expect(outputStream.offset).toEqual(0)
+    expect(outputStream.bitOffset).toEqual(4)
+    expect(outputStream.output).toEqual([15])
+    outputStream.pack(codeLength, 0)
+    expect(outputStream.offset).toEqual(1)
+    expect(outputStream.bitOffset).toEqual(0)
+    expect(outputStream.output).toEqual([15])
+    outputStream.pack(codeLength, 15)
+    expect(outputStream.offset).toEqual(1)
+    expect(outputStream.bitOffset).toEqual(4)
+    expect(outputStream.output).toEqual([15, 15])
+    outputStream.pack(codeLength, 0)
+    expect(outputStream.offset).toEqual(2)
+    expect(outputStream.bitOffset).toEqual(0)
+    expect(outputStream.output).toEqual([15, 15])
+  })
+
+  test("computes the output stream correctly (code length not a power of 2)", () => {
+    let outputStream = new OutputStream()
+    const codeLength = 5
+    outputStream.pack(codeLength, 15)
+    expect(outputStream.offset).toEqual(0)
+    expect(outputStream.bitOffset).toEqual(5)
+    expect(outputStream.output).toEqual([15])
+    outputStream.pack(codeLength, 0)
+    expect(outputStream.offset).toEqual(1)
+    expect(outputStream.bitOffset).toEqual(2)
+    expect(outputStream.output).toEqual([15, 0])
+    outputStream.pack(codeLength, 15)
+    expect(outputStream.offset).toEqual(1)
+    expect(outputStream.bitOffset).toEqual(7)
+    expect(outputStream.output).toEqual([15, 60])
+    outputStream.pack(codeLength, 0)
+    expect(outputStream.offset).toEqual(2)
+    expect(outputStream.bitOffset).toEqual(4)
+    expect(outputStream.output).toEqual([15, 60, 0])
+  })
+
+  test("computes the output stream correctly (bit offset not 0)", () => {
+    let outputStream = new OutputStream()
+    outputStream.bitOffset = 2
+    const codeLength = 5
+    outputStream.pack(codeLength, 15)
+    expect(outputStream.offset).toEqual(0)
+    expect(outputStream.bitOffset).toEqual(7)
+    expect(outputStream.output).toEqual([60])
+    outputStream.pack(codeLength, 0)
+    expect(outputStream.offset).toEqual(1)
+    expect(outputStream.bitOffset).toEqual(4)
+    expect(outputStream.output).toEqual([60, 0])
+    outputStream.pack(codeLength, 15)
+    expect(outputStream.offset).toEqual(2)
+    expect(outputStream.bitOffset).toEqual(1)
+    expect(outputStream.output).toEqual([60, 240, 0])
+    outputStream.pack(codeLength, 0)
+    expect(outputStream.offset).toEqual(2)
+    expect(outputStream.bitOffset).toEqual(6)
+    expect(outputStream.output).toEqual([60, 240, 0])
+  })
+
+  test("computes the output stream correctly (bit offset not 0, non symmetrical values)", () => {
+    let outputStream = new OutputStream()
+    outputStream.bitOffset = 2
+    const codeLength = 5
+    outputStream.pack(codeLength, 13)
+    expect(outputStream.offset).toEqual(0)
+    expect(outputStream.bitOffset).toEqual(7)
+    expect(outputStream.output).toEqual([52])
+    outputStream.pack(codeLength, 0)
+    expect(outputStream.offset).toEqual(1)
+    expect(outputStream.bitOffset).toEqual(4)
+    expect(outputStream.output).toEqual([52, 0])
+    outputStream.pack(codeLength, 13)
+    expect(outputStream.offset).toEqual(2)
+    expect(outputStream.bitOffset).toEqual(1)
+    expect(outputStream.output).toEqual([52, 208, 0])
+    outputStream.pack(codeLength, 0)
+    expect(outputStream.offset).toEqual(2)
+    expect(outputStream.bitOffset).toEqual(6)
+    expect(outputStream.output).toEqual([52, 208, 0])
+  })
+})
