@@ -4,14 +4,7 @@ const get = url => {
     req.open("GET", url, true)
     req.responseType = "arraybuffer"
     req.onerror = reject
-
-    req.onload = () => {
-      const buffer = req.response
-      if (buffer) {
-        resolve(new Uint8Array(buffer))
-      }
-    }
-
+    req.onload = () => { resolve(req.response) }
     req.send(null)
   })
 }

@@ -2,10 +2,45 @@ import decoder from "../src/decoder"
 import fs from "fs"
 
 describe("decode", () => {
-  test("throws an exception if the buffer can't be decoded as a GIF", () => {
+  test("throws an exception if the buffer is empty", () => {
     const buffer = new ArrayBuffer()
-    const bytes = new Uint8Array(buffer)
-    expect(() => decoder.decode(bytes)).toThrow(/signatureNotSupportedError/)
+    expect(() => decoder.decode(buffer)).toThrow(/Out of bound/)
+  })
+
+  test("throws an exception if the buffer can't be decoded as a GIF (wrong signature)", () => {
+    const buffer = Buffer.from("FIG", "ascii")
+    expect(() => decoder.decode(buffer)).toThrow(/signatureNotSupportedError/)
+  })
+
+  test("throws an exception if the buffer can't be decoded as a GIF (wrong version)", () => {
+    const buffer = Buffer.from("GIF89b", "ascii")
+    expect(() => decoder.decode(buffer)).toThrow(/versionNotSupportedError/)
+  })
+
+  test("decodes an empty GIF", () => {
+    const header = Buffer.from("GIF89a", "ascii")
+    const logicalScreen = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], "hex")
+    const trailer = Buffer.from([0x3B], "hex")
+    const buffer = Buffer.concat([header, logicalScreen, trailer])
+    const gifContent = decoder.decode(buffer)
+
+    expect(gifContent.header).toEqual({
+      signature: "GIF",
+      version: "89a"
+    })
+
+    expect(gifContent.logicalScreen.logicalScreenDescriptor).toEqual({
+      width: 0,
+      height: 0,
+      globalColorTableFlag: false,
+      colorResolution: 1,
+      sortFlag: false,
+      globalColorTableSize: 2,
+      backgroundColorIndex: 0,
+      pixelAspectRatio: 0
+    })
+
+    expect(gifContent.data.length).toEqual(0)
   })
 
   test("monochromatic GIF", done => {
@@ -15,8 +50,7 @@ describe("decode", () => {
         return
       }
 
-      const bytes = new Uint8Array(buffer)
-      const gifContent = decoder.decode(bytes)
+      const gifContent = decoder.decode(buffer)
 
       expect(gifContent.header).toEqual({
         signature: "GIF",

@@ -1,36 +1,32 @@
 import constants from "./constants"
 import lzw from "./lzw"
+import BytesStream from "./bytes_stream"
 
-const decode = bytes => {
+const decode = buffer => {
+  let bytes = new BytesStream(buffer)
   const header = decodeHeader(bytes)
-  var { nextOffset, logicalScreen } = decodeLogicalScreen(bytes)
-  let offset = nextOffset
-  let dataArray = []
+  let logicalScreen = decodeLogicalScreen(bytes)
+  let data = []
 
-  while (bytes[offset] !== constants.trailer) {
-    var { nextOffset, data } = decodeData(bytes, offset)
-    dataArray.push(data)
-
-    if (nextOffset <= offset) {
-      throw new Error("genericError")
-    }
-    offset = nextOffset
+  let i = 0
+  while (bytes.peek() !== constants.trailer) {
+    data.push(decodeData(bytes))
   }
 
   return {
     header,
     logicalScreen,
-    data: dataArray
+    data
   }
 }
 
 const decodeHeader = bytes => {
-  const signature = decodeAscii(bytes.slice(constants.signatureRange[0], constants.signatureRange[0] + constants.signatureRange[1]))
+  const signature = decodeAscii(bytes.read(constants.signatureSize))
   if (signature !== constants.signature) {
     throw new Error(`signatureNotSupportedError: signature: ${signature}`)
   }
 
-  const version = decodeAscii(bytes.slice(constants.versionRange[0], constants.versionRange[0] + constants.versionRange[1]))
+  const version = decodeAscii(bytes.read(constants.versionSize))
   if (version !== constants.version) {
     throw new Error(`versionNotSupportedError, version: ${version}`)
   }
@@ -43,115 +39,107 @@ const decodeAscii = bytes => {
 }
 
 const decodeLogicalScreen = bytes => {
-  let logicalScreenDescriptor = {
-    width: decodeUInt16(bytes, constants.widthOffset),
-    height: decodeUInt16(bytes, constants.heightOffset),
-    globalColorTableFlag: decodeBool(bytes, constants.fieldsOffset, constants.globalColorTableFlagMask),
-    colorResolution: ((bytes[constants.fieldsOffset] & constants.colorResolutionMask) >> 4) + 1,
-    sortFlag: decodeBool(bytes, constants.fieldsOffset, constants.sortFlagMask),
-    globalColorTableSize: 1 << ((bytes[constants.fieldsOffset] & constants.globalColorTableSizeMask) + 1),
-    backgroundColorIndex: bytes[constants.backgroundColorIndexOffset],
-    pixelAspectRatio: bytes[constants.pixelAspectRatioOffset]
-  }
-
-  var nextOffset = constants.globalColorTableOffset
+  let logicalScreenDescriptor = {}
+  logicalScreenDescriptor.width = decodeUInt16(bytes)
+  logicalScreenDescriptor.height = decodeUInt16(bytes)
+  const fields = bytes.read()
+  logicalScreenDescriptor.globalColorTableFlag = decodeBool(fields, constants.globalColorTableFlagMask)
+  logicalScreenDescriptor.colorResolution = ((fields & constants.colorResolutionMask) >> 4) + 1
+  logicalScreenDescriptor.sortFlag = decodeBool(fields, constants.sortFlagMask)
+  logicalScreenDescriptor.globalColorTableSize = 1 << ((fields & constants.globalColorTableSizeMask) + 1)
+  logicalScreenDescriptor.backgroundColorIndex = bytes.read()
+  logicalScreenDescriptor.pixelAspectRatio = bytes.read()
 
   if (logicalScreenDescriptor.globalColorTableFlag) {
-    var { nextOffset, colorTable } = decodeColorTable(bytes, nextOffset, logicalScreenDescriptor.globalColorTableSize)
+    var colorTable = decodeColorTable(bytes, logicalScreenDescriptor.globalColorTableSize)
   }
 
   return {
-    nextOffset,
-    logicalScreen: {
-      logicalScreenDescriptor,
-      globalColorTable: colorTable
-    }
+    logicalScreenDescriptor,
+    globalColorTable: colorTable
   }
 }
 
-const decodeUInt16 = (bytes, offset) => {
-  return bytes[offset] | bytes[offset + 1] << 8
+const decodeUInt16 = bytes => {
+  const low = bytes.read()
+  const high = bytes.read() << 8
+  return low | high
 }
 
-const decodeBool = (bytes, offset, mask) => {
-  return (bytes[offset] & mask) > 0
+const decodeBool = (byte, mask) => {
+  return (byte & mask) > 0
 }
 
-const decodeColorTable = (bytes, offset, size) => {
-  let colorTable = []
+const decodeColorTable = (bytes, size) => {
+  let colors = []
+  let r, g, b
   for (let i = 0; i < size; i++) {
-    let j = offset + i * 3
-    colorTable.push({
-      r: bytes[j],
-      g: bytes[j + 1],
-      b: bytes[j + 2]
-    })
+    r = bytes.read()
+    g = bytes.read()
+    b = bytes.read()
+    colors.push({ r, g, b })
   }
-  return { nextOffset: offset + size * 3, colorTable }
+  return colors
 }
 
-const decodeData = (bytes, offset) => {
-  switch (bytes[offset]) {
+const decodeData = bytes => {
+  const introducer = bytes.read()
+  switch (introducer) {
   case constants.extensionIntroducer:
-    if (bytes[offset + 1] === constants.graphicControlExtensionLabel) {
-      let graphicControlExtensionOffset = offset + 2
-      let graphicControlExtension = decodeGraphicControlExtension(bytes, graphicControlExtensionOffset)
-      let graphicControlExtensionSize = constants.transparentColorIndexOffset + 2
-      var nextOffset = graphicControlExtensionOffset + graphicControlExtensionSize
-      return {
-        nextOffset,
-        data: {
-          type: "GRAPHIC_BLOCK",
-          data: graphicControlExtension
-        }
-      }
-    }
-
-    var { nextOffset, specialPurposeBlock } = decodeSpecialPurposeBlock(bytes, offset + 1)
-    return {
-      nextOffset,
-      data: {
-        type: "SPECIAL_PURPOSE_BLOCK",
-        data: specialPurposeBlock
-      }
-    }
+    return decodeExtension(bytes)
   case constants.imageDescriptor:
-    var { nextOffset, tableBasedImage } = decodeTableBasedImage(bytes, offset + 1)
-    return {
-      nextOffset,
-      data: {
-        type: "TABLE_BASED_IMAGE",
-        data: tableBasedImage
-      }
-    }
+    return decodeTableBasedImage(bytes)
   default:
-    throw new Error(`blockNotSupportedError, introducer: ${bytes[offset]}`)
+    throw new Error(`blockNotSupportedError, introducer: ${introducer}`)
   }
 }
 
-const decodeGraphicControlExtension = (bytes, offset) => {
+const decodeExtension = bytes => {
+  const label = bytes.read()
+  switch (label) {
+  case constants.graphicControlExtensionLabel:
+    return decodeGraphicControlExtension(bytes)
+  case constants.applicationExtensionLabel:
+    return decodeApplicationExtension(bytes)
+  default:
+    // TODO: decode comment extension
+    throw new Error(`extensionNotSupportedError, label: ${label}`)
+  }
+}
+
+const decodeGraphicControlExtension = bytes => {
+  // Read block size (fixed value: 4)
+  bytes.read()
+
+  let graphicControlExtension = {}
+  const fields = bytes.read()
+  graphicControlExtension.disposalMethod = (fields & constants.disposalMethodMask) >> 2
+  graphicControlExtension.userInputFlag = decodeBool(fields, constants.userInputFlagMask)
+  graphicControlExtension.transparentColorFlag = decodeBool(fields, constants.transparentColorFlagMask)
+  graphicControlExtension.delayTime = decodeUInt16(bytes)
+  graphicControlExtension.transparentColorIndex = bytes.read()
+
+  // Read block terminator
+  bytes.read()
+
   return {
-    disposalMethod: (bytes[constants.packedFieldsOffset + offset] & constants.disposalMethodMask) >> 2,
-    userInputFlag: decodeBool(bytes, constants.packedFieldsOffset + offset, constants.userInputFlagMask),
-    transparentColorFlag: decodeBool(bytes, constants.packedFieldsOffset + offset, constants.transparentColorFlagMask),
-    delayTime: decodeUInt16(bytes, constants.delayTimeOffset + offset),
-    transparentColorIndex: bytes[constants.transparentColorIndexOffset + offset]
+    type: "GRAPHIC_BLOCK",
+    data: graphicControlExtension
   }
 }
 
-const decodeTableBasedImage = (bytes, offset) => {
-  const imageDescriptor = decodeImageDescriptor(bytes, offset)
-  var nextOffset = offset + constants.idFieldsOffset + 1
+const decodeTableBasedImage = bytes => {
+  const imageDescriptor = decodeImageDescriptor(bytes)
 
   if (imageDescriptor.localColorTableFlag) {
-    var { nextOffset, colorTable } = decodeColorTable(bytes, nextOffset, imageDescriptor.localColorTableSize)
+    var colorTable = decodeColorTable(bytes, imageDescriptor.localColorTableSize)
   }
 
-  var { nextOffset, imageData } = decodeImageData(bytes, nextOffset)
+  const imageData = decodeImageData(bytes)
 
   return {
-    nextOffset,
-    tableBasedImage: {
+    type: "TABLE_BASED_IMAGE",
+    data: {
       imageDescriptor,
       localColorTable: colorTable,
       imageData
@@ -159,32 +147,31 @@ const decodeTableBasedImage = (bytes, offset) => {
   }
 }
 
-const decodeImageDescriptor = (bytes, offset) => {
-  return {
-    leftPosition: decodeUInt16(bytes, offset + constants.leftPositionOffset),
-    topPosition: decodeUInt16(bytes, offset + constants.topPositionOffset),
-    width: decodeUInt16(bytes, offset + constants.idWidthOffset),
-    height: decodeUInt16(bytes, offset + constants.idHeightOffset),
-    localColorTableFlag: decodeBool(bytes, offset + constants.idFieldsOffset, constants.localColorTableFlagMask),
-    interlaceFlag: decodeBool(bytes, offset + constants.idFieldsOffset, constants.interlaceFlagMask),
-    sortFlag: decodeBool(bytes, offset + constants.idFieldsOffset, constants.idSortFlagMask),
-    localColorTableSize: 1 << ((bytes[offset + constants.idFieldsOffset] & constants.localColorTableSizeMask) + 1)
-  }
+const decodeImageDescriptor = bytes => {
+  let imageDescriptor = {}
+  imageDescriptor.leftPosition = decodeUInt16(bytes)
+  imageDescriptor.topPosition = decodeUInt16(bytes)
+  imageDescriptor.width = decodeUInt16(bytes)
+  imageDescriptor.height = decodeUInt16(bytes)
+  const fields = bytes.read()
+  imageDescriptor.localColorTableFlag = decodeBool(fields, constants.localColorTableFlagMask)
+  imageDescriptor.interlaceFlag = decodeBool(fields, constants.interlaceFlagMask)
+  imageDescriptor.sortFlag = decodeBool(fields, constants.idSortFlagMask)
+  imageDescriptor.localColorTableSize = 1 << ((fields & constants.localColorTableSizeMask) + 1)
+
+  return imageDescriptor
 }
 
-const decodeImageData = (bytes, offset) => {
-  const lzwMinimumCodeSize = bytes[offset]
-  let { nextOffset, blocks } = decodeDataSubBlocks(bytes, offset + 1)
+const decodeImageData = bytes => {
+  const lzwMinimumCodeSize = bytes.read()
+  const blocks = decodeDataSubBlocks(bytes)
   const compressedData = concatenate(blocks.map(block => block.data))
   const data = codes(lzw.decompress(lzwMinimumCodeSize, compressedData))
 
   return {
-    nextOffset,
-    imageData: {
-      lzwMinimumCodeSize,
-      blocks,
-      data
-    }
+    lzwMinimumCodeSize,
+    blocks,
+    data
   }
 }
 
@@ -206,47 +193,38 @@ const codes = string => {
   return result
 }
 
-const decodeDataSubBlocks = (bytes, offset) => {
-  var { nextOffset, block } = decodeDataSubBlock(bytes, offset)
-  let blocks = [block]
+const decodeDataSubBlocks = bytes => {
+  let block = decodeDataSubBlock(bytes)
+  let blocks = []
   while (!block.isBlockTerminator) {
-    var { nextOffset, block } = decodeDataSubBlock(bytes, nextOffset)
     blocks.push(block)
+    block = decodeDataSubBlock(bytes)
   }
-  return { nextOffset, blocks }
+  return blocks
 }
 
-const decodeDataSubBlock = (bytes, offset) => {
-  const blockSize = bytes[offset]
-  const nextOffset = offset + blockSize + 1
-  const block = {
-    blockSize,
-    data: bytes.slice(offset + 1, offset + 1 + blockSize),
-    isBlockTerminator: blockSize === 0
+const decodeDataSubBlock = bytes => {
+  const size = bytes.read()
+  const isBlockTerminator = size === 0
+  let data
+  if (isBlockTerminator) {
+    data = []
+  } else {
+    data = bytes.read(size)
   }
-  return { nextOffset, block }
-}
-
-const decodeSpecialPurposeBlock = (bytes, offset) => {
-  switch (bytes[offset]) {
-  case constants.applicationExtensionLabel:
-    var { nextOffset, extensionData } = decodeApplicationExtension(bytes, offset + 1)
-    return {
-      nextOffset,
-      specialPurposeBlock: {
-        type: "APPLICATION_EXTENSION",
-        data: extensionData
-      }
-    }
-  default:
-    // TODO: decode comment extension
-    throw new Error(`extensionNotSupportedError, label: ${bytes[offset]}`)
+  return {
+    size,
+    data,
+    isBlockTerminator
   }
 }
 
-const decodeApplicationExtension = (bytes, offset) => {
-  const applicationIdentifierData = bytes.slice(constants.applicationIdentifierRange[0] + offset, constants.applicationIdentifierRange[0] + offset + constants.applicationIdentifierRange[1])
-  const applicationAuthCodeData = bytes.slice(constants.applicationAuthCodeRange[0] + offset, constants.applicationAuthCodeRange[0] + offset + constants.applicationAuthCodeRange[1])
+const decodeApplicationExtension = bytes => {
+  // Read block size (fixed value: 11)
+  bytes.read()
+
+  const applicationIdentifierData = bytes.read(constants.applicationIdentifierSize)
+  const applicationAuthCodeData = bytes.read(constants.applicationAuthCodeSize)
   const applicationIdentifier = decodeAscii(applicationIdentifierData)
   const applicationAuthCode = decodeAscii(applicationAuthCodeData)
 
@@ -256,18 +234,24 @@ const decodeApplicationExtension = (bytes, offset) => {
   }
 
   if (applicationIdentifier === "NETSCAPE" && applicationAuthCode === "2.0") {
-    const loopCount = decodeUInt16(bytes, offset + constants.loopCountOffset)
+    // Read block size (fixed value: 3)
+    bytes.read()
+    // Read sub-block id (fixed value: 1)
+    bytes.read()
+
+    const loopCount = decodeUInt16(bytes)
     applicationExtension.data = { loopCount }
-    // Note: 2 bytes (loop count) + 1 byte to skip the block terminator
-    var nextOffset = constants.loopCountOffset + offset + 3
+
+    // Read block terminator
+    bytes.read()
   } else {
-    var { nextOffset } = decodeDataSubBlocks(bytes, offset + constants.applicationExtensionDataOffset)
-    applicationExtension = `applicationExtensionNotSupportedError, identifier: ${applicationIdentifier}, authCode: ${applicationAuthCode}`
+    decodeDataSubBlocks(bytes)
+    applicationExtension.data = "applicationExtensionNotSupportedError"
   }
 
   return {
-    nextOffset,
-    extensionData: applicationExtension
+    type: "APPLICATION_EXTENSION",
+    data: applicationExtension
   }
 }
 
