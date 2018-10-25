@@ -1,6 +1,6 @@
 # gif.js
 
-Gif encoder/decoder.
+GIF encoder/decoder.
 
 [![Build Status](https://travis-ci.org/potomak/gif.js.svg?branch=master)](https://travis-ci.org/potomak/gif.js)
 

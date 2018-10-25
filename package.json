@@ -1,7 +1,7 @@
 {
   "name": "gif.js",
   "version": "0.0.1",
-  "description": "Gif encoder/decoder",
+  "description": "GIF encoder/decoder",
   "browser": "dist/main.js",
   "scripts": {
     "test": "jest",
