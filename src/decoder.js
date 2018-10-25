@@ -8,7 +8,6 @@ const decode = buffer => {
   let logicalScreen = decodeLogicalScreen(bytes)
   let data = []
 
-  let i = 0
   while (bytes.peek() !== constants.trailer) {
     data.push(decodeData(bytes))
   }

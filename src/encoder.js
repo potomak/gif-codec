@@ -1,6 +1,5 @@
 const encode = () => {
-  console.log("encode")
-  return "encode"
+  return "TODO"
 }
 
 export default {

@@ -40,7 +40,7 @@ describe("decode", () => {
       pixelAspectRatio: 0
     })
 
-    expect(gifContent.data.length).toEqual(0)
+    expect(gifContent.data).toHaveLength(0)
   })
 
   test("monochromatic GIF", done => {
@@ -93,9 +93,9 @@ describe("decode", () => {
         sortFlag: false,
         localColorTableSize: 2
       })
-      expect(gifContent.data[1].data.imageData.data.length).toEqual(72 * 48)
+      expect(gifContent.data[1].data.imageData.data).toHaveLength(72 * 48)
 
       done()
-    });
+    })
   })
 })

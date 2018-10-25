@@ -9,13 +9,10 @@ const init = () => {
   // let filepath = "/monster_small.gif"
   http.get(filepath).then(gif.decode)
     .then(gifContent => {
-      console.log(gifContent)
-
       let imageElement = document.createElement("div")
       imageElement.style.position = "relative"
       document.body.appendChild(imageElement)
 
-      let graphicRenderingBlock
       let framesCount = 0
       for (let i = 0; i < gifContent.data.length; i++) {
         if (gifContent.data[i].type !== "TABLE_BASED_IMAGE") {

@@ -23,7 +23,7 @@ describe("unpack", () => {
     expect(inputStream.bitOffset).toEqual(1)
   })
 
-  test("unpacks the input stream correctly (code length > 8)", () => {
+  test("unpacks the input stream correctly (code length > 8, first 2 bytes of message)", () => {
     let inputStream = new InputStream([0, 169, 60, 17])
     const codeLength = 9
     expect(inputStream.unpack(codeLength)).toEqual(256)
@@ -37,7 +37,7 @@ describe("unpack", () => {
     expect(inputStream.bitOffset).toEqual(3)
   })
 
-  test("unpacks the input stream correctly (code length > 8)", () => {
+  test("unpacks the input stream correctly (code length > 8, empty message)", () => {
     let inputStream = new InputStream([0, 3, 2])
     const codeLength = 9
     expect(inputStream.unpack(codeLength)).toEqual(256)

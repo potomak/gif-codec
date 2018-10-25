@@ -1,7 +1,7 @@
 import http from "../src/http"
 
 describe("get", () => {
-  test("TODO", () => {
-    expect("foo").toEqual("foo")
+  test("is defined", () => {
+    expect(http.get).toBeInstanceOf(Function)
   })
 })
