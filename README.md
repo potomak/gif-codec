@@ -4,6 +4,38 @@ Gif encoder/decoder.
 
 [![Build Status](https://travis-ci.org/potomak/gif.js.svg?branch=master)](https://travis-ci.org/potomak/gif.js)
 
+## Getting started
+
+Install npm dependencies:
+
+```sh
+npm install
+```
+
+Run tests:
+
+```sh
+npm test
+```
+
+Lint JS files:
+
+```sh
+npm run lint
+```
+
+Continuously build a development version of the bundle:
+
+```sh
+npm run watch
+```
+
+Run a local HTTP server:
+
+```sh
+npm run serve
+```
+
 ## Reference
 
 * https://www.w3.org/Graphics/GIF/spec-gif89a.txt

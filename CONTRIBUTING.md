@@ -6,23 +6,7 @@ Fork, then clone the repo:
 git clone git@github.com:your-username/gif.js.git
 ```
 
-Install npm dependencies:
-
-```sh
-npm install
-```
-
-Continuously build a development version of the bundle:
-
-```sh
-npm run-script watch
-```
-
-Run a local HTTP server:
-
-```sh
-npm run-script serve
-```
+See [Getting started][https://github.com/potomak/gif.js#getting-started].
 
 Once you're finished with your work, push to your fork and [submit a pull
 request](https://github.com/potomak/gif.js/compare/).
