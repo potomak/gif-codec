@@ -6,7 +6,7 @@ Fork, then clone the repo:
 git clone git@github.com:your-username/gif.js.git
 ```
 
-See [Getting started][https://github.com/potomak/gif.js#getting-started].
+See [Getting started](https://github.com/potomak/gif.js#getting-started).
 
 Once you're finished with your work, push to your fork and [submit a pull
 request](https://github.com/potomak/gif.js/compare/).
