@@ -47,7 +47,7 @@ const compress = (codeSize, bytes) => {
       codeLength = codeSize + 1
       dictSize = (1 << codeSize) + 2
       dict = initCompressDictionary(dictSize)
-    } else if (dictSize >= 1 << codeLength) {
+    } else if (dictSize > 1 << codeLength) {
       codeLength++
     }
   }
