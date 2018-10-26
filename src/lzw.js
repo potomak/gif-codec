@@ -34,7 +34,7 @@ const compress = (codeSize, bytes) => {
   for (let i = 0; i < bytes.length; i++) {
     const char = String.fromCharCode(bytes[i])
     const join = sequence + char
-    if (dict[join]) {
+    if (dict.hasOwnProperty(join)) {
       sequence = join
       continue
     }
@@ -87,7 +87,7 @@ const decompress = (codeSize, bytes) => {
       continue
     }
 
-    if (dict[code]) {
+    if (dict.hasOwnProperty(code)) {
       sequence = prevSequence + dict[code][0]
     } else {
       sequence = prevSequence + prevSequence[0]
