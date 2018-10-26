@@ -43,10 +43,10 @@ const compress = (codeSize, bytes) => {
     sequence = char
 
     if (dictSize > MAX_CODE_VALUE) {
+      outputStream.pack(codeLength, clearCode)
       codeLength = codeSize + 1
       dictSize = (1 << codeSize) + 2
       dict = initCompressDictionary(dictSize)
-      outputStream.pack(codeLength, clearCode)
     } else if (dictSize >= 1 << codeLength) {
       codeLength++
     }
