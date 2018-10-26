@@ -1,3 +1,4 @@
+import helpers from "./helpers"
 import lzw from "../src/lzw"
 
 describe("compress", () => {
@@ -31,6 +32,32 @@ describe("decompress", () => {
       const bytes = new Uint8Array(buffer)
       const compressed = lzw.compress(8, bytes)
       expect(lzw.decompress(8, compressed)).toEqual(input)
+    })
+  })
+
+  test("returns the correct ", () => {
+    const buffer = Buffer.from([ 8, 33, 67, 101, 7, 36 ])
+    const bytes = new Uint8Array(buffer)
+    const decompressed = lzw.decompress(3, bytes)
+    expect(Buffer.from(decompressed, "ascii")).toEqual(Buffer.from([ 0, 1, 2, 3, 4, 5, 6, 7, 0 ]))
+  })
+})
+
+describe("compress/decompress behavior", () => {
+  helpers.repeat(10, () => {
+    const codeSize = helpers.randomInt(7) + 2
+    const messageLength = helpers.randomInt(1000) + 1
+    const message = []
+    for (let i = 0; i < messageLength; i++) {
+      message.push(helpers.randomInt(1 << codeSize))
+    }
+
+    test(`decompress(compress(M)) is equal to M (code size: ${codeSize})`, () => {
+      const buffer = Buffer.from(message)
+      const bytes = new Uint8Array(buffer)
+      const compressed = lzw.compress(codeSize, bytes)
+      const decompressed = lzw.decompress(codeSize, compressed)
+      expect(Buffer.from(decompressed, "ascii")).toEqual(buffer)
     })
   })
 })

@@ -5,7 +5,7 @@ export default {
   extensionIntroducer: 0x21,
   applicationExtensionLabel: 0xFF,
   graphicControlExtensionLabel: 0xF9,
-  imageDescriptor: 0x2C,
+  imageSeparator: 0x2C,
   // Header
   signatureSize: 3,
   versionSize: 3,

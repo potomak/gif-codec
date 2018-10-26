@@ -30,23 +30,24 @@ const compress = (codeSize, bytes) => {
 
   let dict = initCompressDictionary(dictSize)
   let sequence = ""
-
   for (let i = 0; i < bytes.length; i++) {
     const char = String.fromCharCode(bytes[i])
     const join = sequence + char
-    if (dict[join]) {
+    if (dict.hasOwnProperty(join)) {
       sequence = join
       continue
     }
+
     outputStream.pack(codeLength, dict[sequence])
     dict[join] = dictSize++
     sequence = char
+
     if (dictSize > MAX_CODE_VALUE) {
+      outputStream.pack(codeLength, clearCode)
       codeLength = codeSize + 1
       dictSize = (1 << codeSize) + 2
       dict = initCompressDictionary(dictSize)
-      outputStream.pack(codeLength, clearCode)
-    } else if (dictSize >= 1 << codeLength) {
+    } else if (dictSize > 1 << codeLength) {
       codeLength++
     }
   }
@@ -87,7 +88,7 @@ const decompress = (codeSize, bytes) => {
       continue
     }
 
-    if (dict[code]) {
+    if (dict.hasOwnProperty(code)) {
       sequence = prevSequence + dict[code][0]
     } else {
       sequence = prevSequence + prevSequence[0]

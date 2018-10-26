@@ -86,7 +86,7 @@ const decodeData = bytes => {
   switch (introducer) {
   case constants.extensionIntroducer:
     return decodeExtension(bytes)
-  case constants.imageDescriptor:
+  case constants.imageSeparator:
     return decodeTableBasedImage(bytes)
   default:
     throw new Error(`blockNotSupportedError, introducer: ${introducer}`)
