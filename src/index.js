@@ -3,10 +3,6 @@ import gif from "./gif"
 
 const init = () => {
   let filepath = "/jumping-man.gif"
-  // let filepath = "/clarke.gif"
-  // let filepath = "/dog.gif"
-  // let filepath = "/monster.gif"
-  // let filepath = "/monster_small.gif"
   http.get(filepath).then(gif.decode)
     .then(gifContent => {
       let imageElement = document.createElement("div")
