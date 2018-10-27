@@ -1,5 +1,5 @@
 {
-  "name": "gif.js",
+  "name": "gif-codec",
   "version": "0.0.1",
   "description": "GIF encoder/decoder",
   "browser": "dist/main.js",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/potomak/gif.js.git"
+    "url": "git://github.com/potomak/gif-codec.git"
   },
   "keywords": [
     "gif"
@@ -20,9 +20,9 @@
   "author": "Giovanni Cappellotto",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/potomak/gif.js/issues"
+    "url": "https://github.com/potomak/gif-codec/issues"
   },
-  "homepage": "https://github.com/potomak/gif.js",
+  "homepage": "https://github.com/potomak/gif-codec",
   "devDependencies": {
     "@babel/core": "^7.1.2",
     "@babel/preset-env": "^7.1.0",

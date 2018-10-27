@@ -3,13 +3,13 @@
 Fork, then clone the repo:
 
 ```sh
-git clone git@github.com:your-username/gif.js.git
+git clone git@github.com:your-username/gif-codec.git
 ```
 
-See [Getting started](https://github.com/potomak/gif.js#getting-started).
+See [Getting started](https://github.com/potomak/gif-codec#getting-started).
 
 Once you're finished with your work, push to your fork and [submit a pull
-request](https://github.com/potomak/gif.js/compare/).
+request](https://github.com/potomak/gif-codec/compare/).
 
 At this point you're waiting on us. We like to at least comment on pull requests
 within three business days (and, typically, one business day). We may suggest
